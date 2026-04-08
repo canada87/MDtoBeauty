@@ -2,7 +2,8 @@
 
 // ── State ──────────────────────────────────────────────────────────────────
 const state = {
-  files: [],       // [{ id, file, name, size }]
+  files: [],    // [{ id, file, name, size }]  — markdown documents (ordered)
+  assets: [],   // [{ file, path }]             — images / assets (flat bag)
   format: 'docx',
   separator: 'pagebreak',
   idCounter: 0,
@@ -20,32 +21,37 @@ const convertBtn   = document.getElementById('convert-btn');
 const convertLabel = document.getElementById('convert-label');
 const toast        = document.getElementById('toast');
 
-// ── Drag & Drop ────────────────────────────────────────────────────────────
+const assetInput   = document.getElementById('asset-input');
+const folderInput  = document.getElementById('folder-input');
+const pickAssets   = document.getElementById('pick-assets');
+const pickFolder   = document.getElementById('pick-folder');
+const assetsList   = document.getElementById('assets-list');
+
+// ── Drag & Drop (markdown) ─────────────────────────────────────────────────
 ['dragenter', 'dragover'].forEach(evt =>
   dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('drag-over'); })
 );
 ['dragleave', 'drop'].forEach(evt =>
   dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('drag-over'); })
 );
-dropzone.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+dropzone.addEventListener('drop', e => addMarkdownFiles(e.dataTransfer.files));
 dropzone.addEventListener('click', e => {
   if (e.target === pickBtn || pickBtn.contains(e.target)) return;
   fileInput.click();
 });
 pickBtn.addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
-fileInput.addEventListener('change', () => addFiles(fileInput.files));
+fileInput.addEventListener('change', () => { addMarkdownFiles(fileInput.files); fileInput.value = ''; });
 
-// ── File Management ────────────────────────────────────────────────────────
-function addFiles(fileList) {
+// ── Markdown file management ───────────────────────────────────────────────
+function addMarkdownFiles(fileList) {
   Array.from(fileList).forEach(file => {
     if (!file.name.match(/\.(md|markdown|txt)$/i)) {
-      showToast(`File non supportato: ${file.name}`, 'error');
+      showToast(`Tipo non supportato: ${file.name}`, 'error');
       return;
     }
     state.files.push({ id: ++state.idCounter, file, name: file.name, size: file.size });
   });
   renderFilesList();
-  fileInput.value = '';
 }
 
 function removeFile(id) {
@@ -61,12 +67,6 @@ function moveFile(id, dir) {
   renderFilesList();
 }
 
-function formatBytes(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 function renderFilesList() {
   filesList.innerHTML = '';
   state.files.forEach((item, idx) => {
@@ -79,13 +79,12 @@ function renderFilesList() {
           <polyline points="14 2 14 8 20 8"/>
           <line x1="16" y1="13" x2="8" y2="13"/>
           <line x1="16" y1="17" x2="8" y2="17"/>
-          <polyline points="10 9 9 9 8 9"/>
         </svg>
       </div>
       <span class="file-name" title="${escHtml(item.name)}">${escHtml(item.name)}</span>
       <span class="file-size">${formatBytes(item.size)}</span>
       <div class="file-actions">
-        <button class="icon-btn" data-action="up" data-id="${item.id}" title="Sposta su" ${idx === 0 ? 'disabled' : ''}>
+        <button class="icon-btn" data-action="up"   data-id="${item.id}" title="Sposta su"   ${idx === 0 ? 'disabled' : ''}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
         </button>
         <button class="icon-btn" data-action="down" data-id="${item.id}" title="Sposta giù" ${idx === state.files.length - 1 ? 'disabled' : ''}>
@@ -99,23 +98,100 @@ function renderFilesList() {
   });
 }
 
-// Single delegated listener for the files list
-filesList.addEventListener('click', handleFileListClick);
-
-function handleFileListClick(e) {
+filesList.addEventListener('click', e => {
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
   const id = Number(btn.dataset.id);
-  if (btn.dataset.action === 'del') removeFile(id);
-  if (btn.dataset.action === 'up')  moveFile(id, -1);
+  if (btn.dataset.action === 'del')  removeFile(id);
+  if (btn.dataset.action === 'up')   moveFile(id, -1);
   if (btn.dataset.action === 'down') moveFile(id, +1);
+});
+
+// ── Asset management ───────────────────────────────────────────────────────
+pickAssets.addEventListener('click', () => assetInput.click());
+pickFolder.addEventListener('click', () => {
+  // Set webkitdirectory at click time to avoid browser quirks
+  folderInput.setAttribute('webkitdirectory', '');
+  folderInput.setAttribute('directory', '');
+  folderInput.click();
+});
+
+assetInput.addEventListener('change', () => {
+  addAssets(assetInput.files, false);
+  assetInput.value = '';
+});
+folderInput.addEventListener('change', () => {
+  addAssets(folderInput.files, true);
+  folderInput.value = '';
+});
+
+function addAssets(fileList, fromFolder) {
+  const ASSET_TYPES = /\.(png|jpe?g|gif|svg|webp|bmp|tiff?|ico|avif)$/i;
+  let added = 0;
+
+  Array.from(fileList).forEach(file => {
+    // For folder uploads: use webkitRelativePath; strip the top-level folder name
+    let relPath;
+    if (fromFolder && file.webkitRelativePath) {
+      const parts = file.webkitRelativePath.split('/');
+      // Strip the root folder (e.g. "myproject/images/a.png" → "images/a.png")
+      relPath = parts.slice(1).join('/') || file.name;
+    } else {
+      relPath = file.name;
+    }
+
+    // Skip non-image files when uploading a folder (ignore .md, .ds_store, etc.)
+    if (fromFolder && !ASSET_TYPES.test(file.name)) return;
+
+    // Skip duplicates by path
+    if (state.assets.some(a => a.path === relPath)) return;
+
+    state.assets.push({ file, path: relPath });
+    added++;
+  });
+
+  if (added > 0) renderAssetsList();
+  if (added === 0 && fromFolder) showToast('Nessuna immagine trovata nella cartella.', 'error');
 }
+
+function removeAsset(path) {
+  state.assets = state.assets.filter(a => a.path !== path);
+  renderAssetsList();
+}
+
+function renderAssetsList() {
+  assetsList.innerHTML = '';
+  state.assets.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'asset-item';
+    el.innerHTML = `
+      <div class="asset-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+      </div>
+      <span class="asset-path" title="${escHtml(item.path)}">${escHtml(item.path)}</span>
+      <span class="asset-size">${formatBytes(item.file.size)}</span>
+      <button class="icon-btn del" data-asset-path="${escHtml(item.path)}" title="Rimuovi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>`;
+    assetsList.appendChild(el);
+  });
+}
+
+assetsList.addEventListener('click', e => {
+  const btn = e.target.closest('[data-asset-path]');
+  if (btn) removeAsset(btn.dataset.assetPath);
+});
 
 // ── Text Toggle ────────────────────────────────────────────────────────────
 textToggle.addEventListener('click', () => {
   const open = textSection.style.display === 'none' || !textSection.style.display;
   textSection.style.display = open ? 'block' : 'none';
   textToggle.classList.toggle('open', open);
+  textToggle.setAttribute('aria-expanded', String(open));
 });
 
 // ── Settings ───────────────────────────────────────────────────────────────
@@ -139,14 +215,18 @@ convertBtn.addEventListener('click', async () => {
   const hasText  = textInput.value.trim().length > 0;
 
   if (!hasFiles && !hasText) {
-    showToast('Aggiungi almeno un file o del testo markdown.', 'error');
+    showToast('Aggiungi almeno un file .md o del testo markdown.', 'error');
     return;
   }
 
   setLoading(true);
 
   const fd = new FormData();
+  // Markdown files in user-defined order
   state.files.forEach(item => fd.append('files', item.file, item.name));
+  // Asset files with their relative paths as filename
+  state.assets.forEach(item => fd.append('assets', item.file, item.path));
+
   if (hasText) fd.append('text', textInput.value.trim());
   fd.append('format', state.format);
   fd.append('separator', state.separator);
@@ -162,9 +242,8 @@ convertBtn.addEventListener('click', async () => {
     const blob = await res.blob();
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
-    const ext  = state.format === 'pdf' ? 'pdf' : 'docx';
     a.href     = url;
-    a.download = `documento.${ext}`;
+    a.download = `documento.${state.format === 'pdf' ? 'pdf' : 'docx'}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -195,6 +274,12 @@ function showToast(msg, type = '') {
   toastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
 }
 
+function formatBytes(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function escHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

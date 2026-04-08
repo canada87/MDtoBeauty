@@ -1,6 +1,7 @@
 import os
 import subprocess
 import tempfile
+from pathlib import Path
 
 import markdown
 from weasyprint import HTML
@@ -60,9 +61,7 @@ p {
 }
 
 a { color: #4f46e5; text-decoration: none; }
-
 strong { color: #0f0a30; }
-
 em { font-style: italic; }
 
 code {
@@ -129,11 +128,7 @@ td {
 
 tr:nth-child(even) td { background: #f8fafc; }
 
-ul, ol {
-    margin: 0.5em 0;
-    padding-left: 1.8em;
-}
-
+ul, ol { margin: 0.5em 0; padding-left: 1.8em; }
 li { margin: 0.25em 0; }
 
 hr {
@@ -147,6 +142,7 @@ img {
     height: auto;
     display: block;
     margin: 1em auto;
+    page-break-inside: avoid;
 }
 
 .page-break {
@@ -155,8 +151,6 @@ img {
     display: block;
 }
 
-/* Code syntax highlighting overrides for dark background */
-.codehilite .hll { background-color: #49483e; }
 .codehilite .c  { color: #75715e; }
 .codehilite .k  { color: #66d9ef; }
 .codehilite .n  { color: #f8f8f2; }
@@ -165,43 +159,62 @@ img {
 """
 
 
-def convert_markdown(md_content: str, fmt: str) -> tuple[bytes, str, str]:
-    """Convert merged markdown content to the requested format."""
+def convert_markdown(
+    md_content: str,
+    fmt: str,
+    assets: list[tuple[str, bytes]] | None = None,
+) -> tuple[bytes, str, str]:
+    """
+    Convert merged markdown to the requested format.
+
+    assets: list of (relative_path, file_bytes) — images and other files
+            referenced in the markdown, placed in the working directory
+            so relative paths resolve correctly.
+    """
     with tempfile.TemporaryDirectory() as tmpdir:
-        input_path = os.path.join(tmpdir, "input.md")
-        with open(input_path, "w", encoding="utf-8") as f:
-            f.write(md_content)
+        # Write asset files preserving their relative paths
+        if assets:
+            for rel_path, data in assets:
+                target = Path(tmpdir) / rel_path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(data)
+
+        # Write the merged markdown
+        input_path = Path(tmpdir) / "input.md"
+        input_path.write_text(md_content, encoding="utf-8")
 
         if fmt == "docx":
-            output_path = os.path.join(tmpdir, "output.docx")
-            _to_docx(input_path, output_path)
+            output_path = Path(tmpdir) / "output.docx"
+            _to_docx(str(input_path), str(output_path))
             mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             filename = "document.docx"
         elif fmt == "pdf":
-            output_path = os.path.join(tmpdir, "output.pdf")
-            _to_pdf(md_content, output_path)
+            output_path = Path(tmpdir) / "output.pdf"
+            _to_pdf(md_content, str(output_path), tmpdir)
             mime = "application/pdf"
             filename = "document.pdf"
         else:
             raise ValueError(f"Formato non supportato: {fmt}")
 
-        with open(output_path, "rb") as f:
-            data = f.read()
+        result_bytes = output_path.read_bytes()
 
-    return data, mime, filename
+    return result_bytes, mime, filename
 
 
 def _to_docx(input_md: str, output_docx: str) -> None:
+    """Pandoc runs with input.md in the temp dir, so relative image paths work."""
     result = subprocess.run(
         ["pandoc", input_md, "-o", output_docx, "--standalone"],
         capture_output=True,
         text=True,
+        cwd=str(Path(input_md).parent),  # run from the temp dir
     )
     if result.returncode != 0:
         raise RuntimeError(f"Errore Pandoc: {result.stderr}")
 
 
-def _to_pdf(md_content: str, output_pdf: str) -> None:
+def _to_pdf(md_content: str, output_pdf: str, base_dir: str) -> None:
+    """WeasyPrint resolves relative URLs against base_dir."""
     # Replace \newpage markers with HTML page-break divs
     md_content = md_content.replace("\\newpage", '<div class="page-break"></div>')
 
@@ -219,4 +232,6 @@ def _to_pdf(md_content: str, output_pdf: str) -> None:
 <body>{html_body}</body>
 </html>"""
 
-    HTML(string=full_html).write_pdf(output_pdf)
+    # base_url lets WeasyPrint resolve relative image paths like ./images/photo.png
+    base_url = Path(base_dir).as_uri() + "/"
+    HTML(string=full_html, base_url=base_url).write_pdf(output_pdf)

@@ -395,6 +395,82 @@ textarea:focus {
   .logo { font-size: 1.5rem; }
 }
 
+/* ── Assets Section ── */
+.card-hint {
+  font-size: .85rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  line-height: 1.55;
+}
+
+.card-hint code {
+  font-family: 'Cascadia Code', 'Fira Mono', monospace;
+  font-size: .82rem;
+  background: #f1f5f9;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: .05em .3em;
+  color: var(--primary);
+}
+
+.asset-buttons {
+  display: flex;
+  gap: .6rem;
+  flex-wrap: wrap;
+  margin-bottom: .75rem;
+}
+
+.asset-buttons .btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+}
+
+#assets-list {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+
+.asset-item {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  background: #fdf9f3;
+  border: 1px solid #fde8c3;
+  border-radius: 8px;
+  padding: .45rem .75rem;
+}
+
+.asset-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  background: #fef3c7;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.asset-icon svg { width: 15px; height: 15px; color: #d97706; }
+
+.asset-path {
+  flex: 1;
+  font-size: .82rem;
+  font-family: 'Cascadia Code', 'Fira Mono', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.asset-size {
+  font-size: .78rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
 /* ── Outline Button ── */
 .btn-outline {
   background: none;

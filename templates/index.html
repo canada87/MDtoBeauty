@@ -66,6 +66,29 @@
     </div>
   </section>
 
+  <!-- ── Assets Card ── -->
+  <section class="card">
+    <h2>Immagini &amp; Asset</h2>
+    <p class="card-hint">
+      Carica le immagini referenziate nel markdown. Usa <strong>Sfoglia file</strong> per immagini singole,
+      oppure <strong>Carica cartella</strong> per preservare la struttura di sottocartelle
+      (es. <code>![](images/foto.png)</code>).
+    </p>
+    <div class="asset-buttons">
+      <button class="btn-outline" id="pick-assets" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Sfoglia file
+      </button>
+      <button class="btn-outline" id="pick-folder" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        Carica cartella
+      </button>
+    </div>
+    <input type="file" id="asset-input" multiple accept="image/*,.svg,.webp" hidden>
+    <input type="file" id="folder-input" multiple hidden>
+    <div id="assets-list"></div>
+  </section>
+
   <!-- ── Settings Card ── -->
   <section class="card">
     <h2>Impostazioni di conversione</h2>
