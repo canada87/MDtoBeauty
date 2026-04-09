@@ -45,11 +45,11 @@
     <!-- Project folder button (outside dropzone to avoid click conflicts) -->
     <div class="project-upload-row">
       <span class="hint">oppure carica l'intera struttura del progetto (cartella con .md e immagini):</span>
-      <button class="btn-outline" id="pick-project" type="button">
+      <label for="project-input" class="btn-outline">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
         Carica struttura progetto
-      </button>
-      <input type="file" id="project-input" multiple hidden>
+      </label>
+      <input type="file" id="project-input" multiple webkitdirectory hidden>
     </div>
 
     <!-- Files List -->
