@@ -39,8 +39,7 @@ const pickProject  = document.getElementById('pick-project');
 );
 dropzone.addEventListener('drop', e => addMarkdownFiles(e.dataTransfer.files));
 dropzone.addEventListener('click', e => {
-  if (e.target === pickBtn     || pickBtn.contains(e.target))     return;
-  if (e.target === pickProject || pickProject.contains(e.target)) return;
+  if (e.target === pickBtn || pickBtn.contains(e.target)) return;
   fileInput.click();
 });
 pickBtn.addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
@@ -63,10 +62,7 @@ function addMarkdownFiles(fileList) {
 const MD_RE    = /\.(md|markdown|txt)$/i;
 const ASSET_RE = /\.(png|jpe?g|gif|svg|webp|bmp|tiff?|ico|avif)$/i;
 
-pickProject.addEventListener('click', e => {
-  e.stopPropagation();
-  projectInput.click();
-});
+pickProject.addEventListener('click', () => projectInput.click());
 
 projectInput.addEventListener('change', () => {
   addProjectFolder(projectInput.files);

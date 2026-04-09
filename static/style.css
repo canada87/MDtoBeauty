@@ -367,7 +367,7 @@ textarea:focus {
   position: fixed;
   bottom: 1.5rem;
   left: 50%;
-  transform: translateX(-50%) translateY(120%);
+  transform: translateX(-50%) translateY(calc(100% + 3rem));
   background: #1e293b;
   color: #fff;
   padding: .7rem 1.3rem;
@@ -411,6 +411,25 @@ textarea:focus {
   border-radius: 3px;
   padding: .05em .3em;
   color: var(--primary);
+}
+
+.project-upload-row {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  flex-wrap: wrap;
+  margin: .6rem 0 .25rem;
+}
+
+.project-upload-row .hint {
+  margin: 0;
+  flex-basis: 100%;
+}
+
+.project-upload-row .btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
 }
 
 .asset-buttons {
