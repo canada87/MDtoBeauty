@@ -430,6 +430,7 @@ textarea:focus {
   display: inline-flex;
   align-items: center;
   gap: .4rem;
+  white-space: nowrap;
 }
 
 .asset-buttons {
