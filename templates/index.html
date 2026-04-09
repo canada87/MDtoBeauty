@@ -37,9 +37,14 @@
         </svg>
       </div>
       <p>Trascina i file <strong>.md</strong> qui</p>
-      <p class="hint">Supporta file multipli — verranno uniti nell'ordine indicato</p>
+      <p class="hint">Supporta file multipli — verranno uniti nell'ordine indicato.<br>
+      Con <strong>Carica struttura progetto</strong> puoi selezionare l'intera cartella:<br>
+      i file <code>.md</code> e le immagini vengono rilevati automaticamente.</p>
       <button class="btn-outline" id="pick-files" type="button">Sfoglia file</button>
+      <span class="hint">o</span>
+      <button class="btn-outline" id="pick-project" type="button">Carica struttura progetto</button>
       <input type="file" id="file-input" multiple accept=".md,.markdown,.txt" hidden>
+      <input type="file" id="project-input" multiple hidden>
     </div>
 
     <!-- Files List -->

@@ -27,6 +27,9 @@ const pickAssets   = document.getElementById('pick-assets');
 const pickFolder   = document.getElementById('pick-folder');
 const assetsList   = document.getElementById('assets-list');
 
+const projectInput = document.getElementById('project-input');
+const pickProject  = document.getElementById('pick-project');
+
 // ── Drag & Drop (markdown) ─────────────────────────────────────────────────
 ['dragenter', 'dragover'].forEach(evt =>
   dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('drag-over'); })
@@ -49,9 +52,67 @@ function addMarkdownFiles(fileList) {
       showToast(`Tipo non supportato: ${file.name}`, 'error');
       return;
     }
-    state.files.push({ id: ++state.idCounter, file, name: file.name, size: file.size });
+    // Plain file picker: relPath is just the filename (root level, no rewriting needed)
+    state.files.push({ id: ++state.idCounter, file, name: file.name, relPath: file.name, size: file.size });
   });
   renderFilesList();
+}
+
+// ── Project folder upload ──────────────────────────────────────────────────
+const MD_RE    = /\.(md|markdown|txt)$/i;
+const ASSET_RE = /\.(png|jpe?g|gif|svg|webp|bmp|tiff?|ico|avif)$/i;
+
+pickProject.addEventListener('click', e => {
+  e.stopPropagation();
+  projectInput.setAttribute('webkitdirectory', '');
+  projectInput.setAttribute('directory', '');
+  projectInput.click();
+});
+
+projectInput.addEventListener('change', () => {
+  addProjectFolder(projectInput.files);
+  projectInput.value = '';
+});
+
+function addProjectFolder(fileList) {
+  const files = Array.from(fileList);
+  if (!files.length) return;
+
+  const newMdItems = [];
+  let assetAdded = 0;
+
+  files.forEach(file => {
+    // webkitRelativePath = "MAIN/chapter1/sub.md" → strip the root folder name
+    const raw     = file.webkitRelativePath || file.name;
+    const parts   = raw.split('/');
+    const relPath = parts.length > 1 ? parts.slice(1).join('/') : file.name;
+
+    if (MD_RE.test(file.name)) {
+      if (state.files.some(f => f.relPath === relPath)) return;  // skip duplicate
+      newMdItems.push({ id: ++state.idCounter, file, name: file.name, relPath, size: file.size });
+    } else if (ASSET_RE.test(file.name)) {
+      if (state.assets.some(a => a.path === relPath)) return;
+      state.assets.push({ file, path: relPath });
+      assetAdded++;
+    }
+  });
+
+  // Sort: shallower paths first, then alphabetically within the same depth
+  newMdItems.sort((a, b) => {
+    const da = a.relPath.split('/').length;
+    const db = b.relPath.split('/').length;
+    return da !== db ? da - db : a.relPath.localeCompare(b.relPath);
+  });
+
+  state.files.push(...newMdItems);
+  renderFilesList();
+  if (assetAdded > 0) renderAssetsList();
+
+  const summary = [];
+  if (newMdItems.length > 0) summary.push(`${newMdItems.length} file markdown`);
+  if (assetAdded > 0) summary.push(`${assetAdded} immagini`);
+  if (summary.length > 0) showToast(`Caricati: ${summary.join(', ')}.`, 'success');
+  else showToast('Nessun file supportato trovato nella cartella.', 'error');
 }
 
 function removeFile(id) {
@@ -81,7 +142,7 @@ function renderFilesList() {
           <line x1="16" y1="17" x2="8" y2="17"/>
         </svg>
       </div>
-      <span class="file-name" title="${escHtml(item.name)}">${escHtml(item.name)}</span>
+      <span class="file-name" title="${escHtml(item.relPath || item.name)}">${escHtml(item.relPath || item.name)}</span>
       <span class="file-size">${formatBytes(item.size)}</span>
       <div class="file-actions">
         <button class="icon-btn" data-action="up"   data-id="${item.id}" title="Sposta su"   ${idx === 0 ? 'disabled' : ''}>
@@ -222,8 +283,9 @@ convertBtn.addEventListener('click', async () => {
   setLoading(true);
 
   const fd = new FormData();
-  // Markdown files in user-defined order
-  state.files.forEach(item => fd.append('files', item.file, item.name));
+  // Markdown files in user-defined order; relPath carries the project-relative path
+  // so the backend can rewrite image references before merging.
+  state.files.forEach(item => fd.append('files', item.file, item.relPath || item.name));
   // Asset files with their relative paths as filename
   state.assets.forEach(item => fd.append('assets', item.file, item.path));
 

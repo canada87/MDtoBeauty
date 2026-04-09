@@ -40,18 +40,23 @@ async def convert(
     separator: Annotated[str, Form()] = "pagebreak",
 ):
     # ── Collect markdown content ──────────────────────────────────────────
-    contents: list[str] = []
+    # Each entry: (relative_path, content). Path is used to rewrite image
+    # references so they resolve from the project root after merging.
+    md_files: list[tuple[str, str]] = []
 
     if files:
         for upload in files:
             if upload.filename and upload.filename.strip():
                 raw = await upload.read()
-                contents.append(raw.decode("utf-8", errors="replace"))
+                safe_path = sanitize_asset_path(upload.filename)
+                # Fall back to bare filename if the path is invalid
+                rel_path = safe_path if safe_path else Path(upload.filename).name
+                md_files.append((rel_path, raw.decode("utf-8", errors="replace")))
 
     if text and text.strip():
-        contents.append(text.strip())
+        md_files.append(("", text.strip()))
 
-    if not contents:
+    if not md_files:
         raise HTTPException(status_code=400, detail="Nessun contenuto fornito.")
 
     # ── Collect asset files (images, etc.) ────────────────────────────────
@@ -68,19 +73,9 @@ async def convert(
             data = await asset.read()
             asset_list.append((safe_path, data))
 
-    # ── Merge markdown ────────────────────────────────────────────────────
-    if separator == "pagebreak":
-        sep = "\n\n\\newpage\n\n"
-    elif separator == "hr":
-        sep = "\n\n---\n\n"
-    else:
-        sep = "\n\n"
-
-    merged = sep.join(contents)
-
     # ── Convert ───────────────────────────────────────────────────────────
     try:
-        data, mime, filename = convert_markdown(merged, format, asset_list)
+        data, mime, filename = convert_markdown(md_files, format, asset_list, separator)
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     except ValueError as exc:

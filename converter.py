@@ -1,4 +1,6 @@
 import os
+import posixpath
+import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -159,18 +161,69 @@ img {
 """
 
 
+def _rewrite_image_paths(content: str, md_rel_path: str) -> str:
+    """
+    Rewrite relative image paths in a markdown file so they resolve from
+    the project root instead of the file's own directory.
+
+    E.g. in chapter1/subchat1.md:
+        ![](../image/chapter1/subchat1/img.jpeg)
+    becomes:
+        ![](image/chapter1/subchat1/img.jpeg)
+    """
+    md_dir = posixpath.dirname(md_rel_path.replace("\\", "/"))
+    if not md_dir:
+        return content  # root-level file — paths are already relative to root
+
+    def _resolve(path: str) -> str:
+        if path.startswith(("http://", "https://", "data:", "/", "#")):
+            return path
+        # Join md_dir + relative path, then normalise away .. components
+        parts = posixpath.join(md_dir, path).split("/")
+        result: list[str] = []
+        for part in parts:
+            if part == "..":
+                if result:
+                    result.pop()
+            elif part and part != ".":
+                result.append(part)
+        return "/".join(result)
+
+    # Match ![alt](path) and ![alt](path "title")
+    return re.sub(
+        r"(!\[[^\]]*\])\(([^)\s\"]+)((?:\s[^)]*)?\))",
+        lambda m: f"{m.group(1)}({_resolve(m.group(2))}{m.group(3)}",
+        content,
+    )
+
+
 def convert_markdown(
-    md_content: str,
+    md_files: list[tuple[str, str]],
     fmt: str,
     assets: list[tuple[str, bytes]] | None = None,
+    separator: str = "pagebreak",
 ) -> tuple[bytes, str, str]:
     """
-    Convert merged markdown to the requested format.
+    Convert a list of (relative_path, markdown_content) pairs to the
+    requested format.
 
-    assets: list of (relative_path, file_bytes) — images and other files
-            referenced in the markdown, placed in the working directory
-            so relative paths resolve correctly.
+    - relative_path is the file's path inside the project folder
+      (e.g. "chapter1/subchat1.md").  Pass "" for inline text with no path.
+    - Image paths inside each file are rewritten to be relative to the
+      project root before the files are merged.
+    - assets: list of (relative_path, file_bytes) for images referenced
+      in the markdown, placed in the working directory so paths resolve.
     """
+    if separator == "pagebreak":
+        sep = "\n\n\\newpage\n\n"
+    elif separator == "hr":
+        sep = "\n\n---\n\n"
+    else:
+        sep = "\n\n"
+
+    parts = [_rewrite_image_paths(content, rel_path) for rel_path, content in md_files]
+    md_content = sep.join(parts)
+
     with tempfile.TemporaryDirectory() as tmpdir:
         # Write asset files preserving their relative paths
         if assets:
