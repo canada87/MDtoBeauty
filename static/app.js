@@ -39,7 +39,8 @@ const pickProject  = document.getElementById('pick-project');
 );
 dropzone.addEventListener('drop', e => addMarkdownFiles(e.dataTransfer.files));
 dropzone.addEventListener('click', e => {
-  if (e.target === pickBtn || pickBtn.contains(e.target)) return;
+  if (e.target === pickBtn     || pickBtn.contains(e.target))     return;
+  if (e.target === pickProject || pickProject.contains(e.target)) return;
   fileInput.click();
 });
 pickBtn.addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
@@ -64,8 +65,6 @@ const ASSET_RE = /\.(png|jpe?g|gif|svg|webp|bmp|tiff?|ico|avif)$/i;
 
 pickProject.addEventListener('click', e => {
   e.stopPropagation();
-  projectInput.setAttribute('webkitdirectory', '');
-  projectInput.setAttribute('directory', '');
   projectInput.click();
 });
 
