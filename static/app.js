@@ -62,7 +62,11 @@ function addMarkdownFiles(fileList) {
 const MD_RE    = /\.(md|markdown|txt)$/i;
 const ASSET_RE = /\.(png|jpe?g|gif|svg|webp|bmp|tiff?|ico|avif)$/i;
 
-pickProject.addEventListener('click', () => projectInput.click());
+pickProject.addEventListener('click', () => {
+  projectInput.setAttribute('webkitdirectory', '');
+  projectInput.setAttribute('directory', '');
+  projectInput.click();
+});
 
 projectInput.addEventListener('change', () => {
   addProjectFolder(projectInput.files);

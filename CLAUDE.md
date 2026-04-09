@@ -74,7 +74,7 @@ docker-compose up   # serves on port 7088
 - PDF styling lives entirely in the CSS string `PDF_CSS` inside `converter.py`. Edit it there to change PDF appearance.
 - The UI language is Italian.
 - Path sanitization for both markdown and asset filenames is in `main.py` (`sanitize_asset_path`) — keep it when modifying upload logic.
-- The "Carica struttura progetto" input has `webkitdirectory` set statically in HTML (not via JS) — this is intentional; setting it dynamically at click time is unreliable across browsers.
+- The "Carica struttura progetto" input sets `webkitdirectory` and `directory` **dynamically** via JS at click time (same pattern as "Carica cartella" in the assets section). Arc browser does not open the file dialog when `webkitdirectory` is set statically in the HTML and the input is clicked programmatically, but it works when the attribute is set immediately before `.click()`.
 - The project folder button sits **outside** the dropzone element to avoid click event conflicts with the dropzone's own click handler.
 - No database, no auth, no background tasks. Keep it that way unless there is a concrete need.
 - Dependencies are pinned loosely in `requirements.txt`; WeasyPrint and Pandoc versions can affect output quality — test both output formats after dependency changes.
