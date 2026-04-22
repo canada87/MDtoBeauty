@@ -1,8 +1,10 @@
+import io
 import os
 import posixpath
 import re
 import subprocess
 import tempfile
+import zipfile
 from pathlib import Path
 
 import markdown
@@ -252,6 +254,52 @@ def convert_markdown(
         result_bytes = output_path.read_bytes()
 
     return result_bytes, mime, filename
+
+
+def docx_to_markdown(docx_bytes: bytes) -> tuple[bytes, str, str]:
+    """
+    Convert a DOCX to Markdown via Pandoc.
+
+    If the document contains embedded media, bundles `document.md` + `media/`
+    into a ZIP. Otherwise returns the markdown file directly.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp = Path(tmpdir)
+        input_path = tmp / "input.docx"
+        input_path.write_bytes(docx_bytes)
+
+        output_path = tmp / "document.md"
+        media_dir = tmp / "media"
+
+        result = subprocess.run(
+            [
+                "pandoc",
+                str(input_path),
+                "-o", str(output_path),
+                "--extract-media=media",
+                "--wrap=none",
+                "--markdown-headings=atx",
+            ],
+            capture_output=True,
+            text=True,
+            cwd=str(tmp),
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"Errore Pandoc: {result.stderr}")
+
+        md_bytes = output_path.read_bytes()
+
+        media_files = [p for p in media_dir.rglob("*") if p.is_file()] if media_dir.exists() else []
+        if not media_files:
+            return md_bytes, "text/markdown; charset=utf-8", "document.md"
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("document.md", md_bytes)
+            for f in media_files:
+                arcname = str(f.relative_to(tmp)).replace("\\", "/")
+                zf.write(f, arcname=arcname)
+        return buf.getvalue(), "application/zip", "document.zip"
 
 
 def _to_docx(input_md: str, output_docx: str) -> None:

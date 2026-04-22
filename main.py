@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from converter import convert_markdown
+from converter import convert_markdown, docx_to_markdown
 
 app = FastAPI(title="MDtoBeauty")
 
@@ -83,6 +83,27 @@ async def convert(
 
     return StreamingResponse(
         io.BytesIO(data),
+        media_type=mime,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.post("/reverse")
+async def reverse(file: Annotated[UploadFile, File()]):
+    if not file.filename or not file.filename.lower().endswith(".docx"):
+        raise HTTPException(status_code=400, detail="Carica un file .docx")
+
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="File vuoto.")
+
+    try:
+        result, mime, filename = docx_to_markdown(data)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return StreamingResponse(
+        io.BytesIO(result),
         media_type=mime,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

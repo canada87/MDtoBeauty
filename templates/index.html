@@ -23,6 +23,21 @@
 
 <main>
 
+  <!-- ── Mode Toggle (forward / reverse) ── -->
+  <div class="mode-toggle" role="group" aria-label="Direzione conversione">
+    <button class="mode-btn active" data-mode="forward" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+      Markdown → Documento
+    </button>
+    <button class="mode-btn" data-mode="reverse" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+      Documento → Markdown
+    </button>
+  </div>
+
+  <!-- ── Forward mode (MD → DOCX/PDF) ── -->
+  <div id="forward-mode">
+
   <!-- ── Upload Card ── -->
   <section class="card">
     <h2>Documenti Markdown</h2>
@@ -145,6 +160,48 @@
       Converti e Scarica
     </span>
   </button>
+
+  </div><!-- /forward-mode -->
+
+  <!-- ── Reverse mode (DOCX → MD) ── -->
+  <div id="reverse-mode" style="display:none">
+
+    <section class="card">
+      <h2>Documento Word</h2>
+      <p class="card-hint">
+        Carica un file <strong>.docx</strong>: verrà convertito in Markdown.
+        Se il documento contiene immagini, scaricherai uno <strong>.zip</strong>
+        con <code>document.md</code> e la cartella <code>media/</code>.
+      </p>
+
+      <div class="dropzone" id="docx-dropzone" role="region" aria-label="Area di caricamento file DOCX">
+        <div class="dropzone-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+        </div>
+        <p>Trascina qui un file <strong>.docx</strong></p>
+        <p class="hint">oppure</p>
+        <button class="btn-outline" id="pick-docx" type="button">Sfoglia file</button>
+        <input type="file" id="docx-input" accept=".docx" hidden>
+      </div>
+
+      <div id="docx-file-info"></div>
+    </section>
+
+    <button class="btn-convert" id="reverse-convert-btn" type="button">
+      <span id="reverse-convert-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Converti in Markdown
+      </span>
+    </button>
+
+  </div><!-- /reverse-mode -->
 
 </main>
 

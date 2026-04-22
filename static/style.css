@@ -491,6 +491,51 @@ textarea:focus {
   flex-shrink: 0;
 }
 
+/* ── Mode Toggle (forward / reverse) ── */
+.mode-toggle {
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .3rem;
+  gap: .3rem;
+  box-shadow: var(--shadow);
+}
+
+.mode-btn {
+  flex: 1;
+  padding: .7rem 1rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  transition: background var(--transition), color var(--transition);
+}
+
+.mode-btn:hover { color: var(--text); }
+
+.mode-btn.active {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(79,70,229,.25);
+}
+
+.mode-btn svg { width: 15px; height: 15px; }
+
+#forward-mode,
+#reverse-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
 /* ── Outline Button ── */
 .btn-outline {
   background: none;

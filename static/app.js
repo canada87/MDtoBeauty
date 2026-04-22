@@ -337,3 +337,128 @@ function formatBytes(bytes) {
 function escHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+
+// ── Mode toggle (forward / reverse) ────────────────────────────────────────
+const forwardMode  = document.getElementById('forward-mode');
+const reverseMode  = document.getElementById('reverse-mode');
+const modeButtons  = document.querySelectorAll('[data-mode]');
+
+modeButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mode = btn.dataset.mode;
+    modeButtons.forEach(b => b.classList.toggle('active', b === btn));
+    forwardMode.style.display = mode === 'forward' ? '' : 'none';
+    reverseMode.style.display = mode === 'reverse' ? '' : 'none';
+  });
+});
+
+// ── Reverse mode (DOCX → MD) ───────────────────────────────────────────────
+const docxDropzone  = document.getElementById('docx-dropzone');
+const docxInput     = document.getElementById('docx-input');
+const pickDocxBtn   = document.getElementById('pick-docx');
+const docxFileInfo  = document.getElementById('docx-file-info');
+const reverseBtn    = document.getElementById('reverse-convert-btn');
+const reverseLabel  = document.getElementById('reverse-convert-label');
+
+let docxFile = null;
+
+['dragenter', 'dragover'].forEach(evt =>
+  docxDropzone.addEventListener(evt, e => { e.preventDefault(); docxDropzone.classList.add('drag-over'); })
+);
+['dragleave', 'drop'].forEach(evt =>
+  docxDropzone.addEventListener(evt, e => { e.preventDefault(); docxDropzone.classList.remove('drag-over'); })
+);
+docxDropzone.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0];
+  if (f) setDocxFile(f);
+});
+docxDropzone.addEventListener('click', e => {
+  if (e.target === pickDocxBtn || pickDocxBtn.contains(e.target)) return;
+  docxInput.click();
+});
+pickDocxBtn.addEventListener('click', e => { e.stopPropagation(); docxInput.click(); });
+docxInput.addEventListener('change', () => {
+  if (docxInput.files[0]) setDocxFile(docxInput.files[0]);
+  docxInput.value = '';
+});
+
+function setDocxFile(file) {
+  if (!/\.docx$/i.test(file.name)) {
+    showToast('Serve un file .docx', 'error');
+    return;
+  }
+  docxFile = file;
+  renderDocxFile();
+}
+
+function renderDocxFile() {
+  docxFileInfo.innerHTML = '';
+  if (!docxFile) return;
+  const el = document.createElement('div');
+  el.className = 'file-item';
+  el.innerHTML = `
+    <div class="file-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+    </div>
+    <span class="file-name" title="${escHtml(docxFile.name)}">${escHtml(docxFile.name)}</span>
+    <span class="file-size">${formatBytes(docxFile.size)}</span>
+    <div class="file-actions">
+      <button class="icon-btn del" id="remove-docx" title="Rimuovi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+    </div>`;
+  docxFileInfo.appendChild(el);
+  document.getElementById('remove-docx').addEventListener('click', () => {
+    docxFile = null;
+    renderDocxFile();
+  });
+}
+
+reverseBtn.addEventListener('click', async () => {
+  if (!docxFile) {
+    showToast('Carica un file .docx', 'error');
+    return;
+  }
+
+  setReverseLoading(true);
+
+  const fd = new FormData();
+  fd.append('file', docxFile, docxFile.name);
+
+  try {
+    const res = await fetch('/reverse', { method: 'POST', body: fd });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Errore sconosciuto' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+
+    const blob = await res.blob();
+    const isZip = blob.type === 'application/zip';
+    const baseName = docxFile.name.replace(/\.docx$/i, '');
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `${baseName}.${isZip ? 'zip' : 'md'}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast('Download avviato!', 'success');
+  } catch (err) {
+    showToast(`Errore: ${err.message}`, 'error');
+  } finally {
+    setReverseLoading(false);
+  }
+});
+
+function setReverseLoading(loading) {
+  reverseBtn.disabled = loading;
+  reverseLabel.innerHTML = loading
+    ? '<div class="spinner"></div> Conversione in corso...'
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Converti in Markdown`;
+}
