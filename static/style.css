@@ -494,40 +494,30 @@ textarea:focus {
 /* ── Mode Toggle (forward / reverse) ── */
 .mode-toggle {
   display: flex;
-  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: .3rem;
-  gap: .3rem;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface);
   box-shadow: var(--shadow);
 }
 
 .mode-btn {
   flex: 1;
-  padding: .7rem 1rem;
+  padding: .65rem 1rem;
   background: transparent;
   border: none;
-  border-radius: 8px;
+  border-right: 1px solid var(--border);
   cursor: pointer;
-  font-size: .9rem;
+  font-size: .88rem;
   font-weight: 600;
   color: var(--muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: .45rem;
+  text-align: center;
   transition: background var(--transition), color var(--transition);
 }
 
-.mode-btn:hover { color: var(--text); }
-
-.mode-btn.active {
-  background: var(--primary);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(79,70,229,.25);
-}
-
-.mode-btn svg { width: 15px; height: 15px; }
+.mode-btn:last-child { border-right: none; }
+.mode-btn:hover { background: #f1f5f9; color: var(--text); }
+.mode-btn.active { background: var(--primary); color: #fff; }
 
 #forward-mode,
 #reverse-mode {
