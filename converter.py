@@ -302,6 +302,20 @@ def docx_to_markdown(docx_bytes: bytes) -> tuple[bytes, str, str]:
         return buf.getvalue(), "application/zip", "document.zip"
 
 
+def pdf_to_markdown(pdf_bytes: bytes) -> tuple[bytes, str, str]:
+    """Convert a PDF to Markdown using markitdown (pdfminer-based, no OCR)."""
+    from markitdown import MarkItDown
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = Path(tmpdir) / "input.pdf"
+        input_path.write_bytes(pdf_bytes)
+
+        result = MarkItDown().convert(str(input_path))
+        md_bytes = result.text_content.encode("utf-8")
+
+        return md_bytes, "text/markdown; charset=utf-8", "document.md"
+
+
 def _to_docx(input_md: str, output_docx: str) -> None:
     """Pandoc runs with input.md in the temp dir, so relative image paths work."""
     result = subprocess.run(

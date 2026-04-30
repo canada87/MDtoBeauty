@@ -383,8 +383,8 @@ docxInput.addEventListener('change', () => {
 });
 
 function setDocxFile(file) {
-  if (!/\.docx$/i.test(file.name)) {
-    showToast('Serve un file .docx', 'error');
+  if (!/\.(docx|pdf)$/i.test(file.name)) {
+    showToast('Serve un file .docx o .pdf', 'error');
     return;
   }
   docxFile = file;
@@ -419,7 +419,7 @@ function renderDocxFile() {
 
 reverseBtn.addEventListener('click', async () => {
   if (!docxFile) {
-    showToast('Carica un file .docx', 'error');
+    showToast('Carica un file .docx o .pdf', 'error');
     return;
   }
 
@@ -438,7 +438,7 @@ reverseBtn.addEventListener('click', async () => {
 
     const blob = await res.blob();
     const isZip = blob.type === 'application/zip';
-    const baseName = docxFile.name.replace(/\.docx$/i, '');
+    const baseName = docxFile.name.replace(/\.(docx|pdf)$/i, '');
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;

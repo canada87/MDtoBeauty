@@ -157,28 +157,32 @@
 
   </div><!-- /forward-mode -->
 
-  <!-- ── Reverse mode (DOCX → MD) ── -->
+  <!-- ── Reverse mode (DOCX/PDF → MD) ── -->
   <div id="reverse-mode" style="display:none">
 
     <section class="card">
-      <h2>Documento Word</h2>
+      <h2>Documento</h2>
       <p class="card-hint">
-        Carica un file <strong>.docx</strong>: verrà convertito in Markdown.
-        Se il documento contiene immagini, scaricherai uno <strong>.zip</strong>
+        Carica un file <strong>.docx</strong> o <strong>.pdf</strong>: verrà convertito in Markdown.
+        Per i <strong>.docx</strong> con immagini, scaricherai uno <strong>.zip</strong>
         con <code>document.md</code> e la cartella <code>media/</code>.
       </p>
+      <p class="card-hint" style="color: var(--text-muted, #888); font-size: 0.82rem;">
+        Nota: la qualità della conversione PDF dipende dal formato del file. I PDF nativi (da Word, LaTeX)
+        funzionano bene; i PDF scansionati (immagini) non sono supportati.
+      </p>
 
-      <div class="dropzone" id="docx-dropzone" role="region" aria-label="Area di caricamento file DOCX">
+      <div class="dropzone" id="docx-dropzone" role="region" aria-label="Area di caricamento file">
         <div class="dropzone-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14 2 14 8 20 8"/>
           </svg>
         </div>
-        <p>Trascina qui un file <strong>.docx</strong></p>
+        <p>Trascina qui un file <strong>.docx</strong> o <strong>.pdf</strong></p>
         <p class="hint">oppure</p>
         <button class="btn-outline" id="pick-docx" type="button">Sfoglia file</button>
-        <input type="file" id="docx-input" accept=".docx" hidden>
+        <input type="file" id="docx-input" accept=".docx,.pdf" hidden>
       </div>
 
       <div id="docx-file-info"></div>
